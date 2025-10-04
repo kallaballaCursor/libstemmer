@@ -7,6 +7,15 @@ set(SNOWBALL_COMPILER_SOURCES
     compiler/tokeniser.c
     compiler/analyser.c
     compiler/generator.c
+    compiler/generator_ada.c
+    compiler/generator_csharp.c
+    compiler/generator_go.c
+    compiler/generator_java.c
+    compiler/generator_js.c
+    compiler/generator_pascal.c
+    compiler/generator_php.c
+    compiler/generator_python.c
+    compiler/generator_rust.c
     compiler/driver.c
 )
 
@@ -22,7 +31,7 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/modules.h
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
     ${CMAKE_CURRENT_BINARY_DIR}/modules.h
-    ${CMAKE_CURRENT_BINARY_DIR}/src_c
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
     ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
