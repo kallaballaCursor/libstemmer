@@ -26,17 +26,43 @@ target_include_directories(snowball_compiler PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/runtime
 )
 
+# Generate all stemmer source files first
+set(ALGORITHMS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/algorithms)
+set(OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/src_c)
+
+# Create output directory
+file(MAKE_DIRECTORY ${OUTPUT_DIR})
+
+# Find all .sbl files
+file(GLOB ALGORITHM_FILES "${ALGORITHMS_DIR}/*.sbl")
+
+# Generate C files from .sbl files
+set(GENERATED_SOURCES)
+foreach(ALGORITHM_FILE ${ALGORITHM_FILES})
+    get_filename_component(ALGORITHM_NAME ${ALGORITHM_FILE} NAME_WE)
+    
+    # Generate C file
+    add_custom_command(
+        OUTPUT ${OUTPUT_DIR}/${ALGORITHM_NAME}.c
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/snowball_compiler
+                ${ALGORITHM_FILE} -o ${OUTPUT_DIR}/${ALGORITHM_NAME} -c
+        DEPENDS snowball_compiler ${ALGORITHM_FILE}
+    )
+    list(APPEND GENERATED_SOURCES ${OUTPUT_DIR}/${ALGORITHM_NAME}.c)
+endforeach()
+
 # Generate modules.h from modules.txt
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/modules.h
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
             ${CMAKE_CURRENT_BINARY_DIR}/modules.h
-	    ../../external/snowball/src_c
+            ${OUTPUT_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
             ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
             ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
+            ${GENERATED_SOURCES}
 )
 add_custom_target(stemmer_modules DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/modules.h)
 
@@ -57,15 +83,13 @@ set(RUNTIME_SOURCES
 )
 
 # Algorithm sources (all generated C implementations)
-file(GLOB STEMMER_ALGO_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src_c/*.c
-)
+# Use the generated sources from the build directory
 
 # Create the libstemmer library with runtime + algorithms + dispatcher
 add_library(stemmer STATIC 
     ${CMAKE_CURRENT_BINARY_DIR}/libstemmer.c
     ${RUNTIME_SOURCES}
-    ${STEMMER_ALGO_SOURCES}
+    ${GENERATED_SOURCES}
 )
 add_dependencies(stemmer snowball_compiler stemmer_modules)
 
@@ -77,7 +101,7 @@ target_include_directories(stemmer PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/runtime
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src_c
+    ${OUTPUT_DIR}
 )
 
 # Set compile definitions
