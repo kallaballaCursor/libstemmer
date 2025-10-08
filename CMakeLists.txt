@@ -30,13 +30,14 @@ target_include_directories(snowball_compiler PRIVATE
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/modules.h
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
-    ${CMAKE_CURRENT_BINARY_DIR}/modules.h
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
-    ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
+            ${CMAKE_CURRENT_BINARY_DIR}/modules.h
+            ../../external/snowball/src_c
+            ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
+            ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
-    ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
+            ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
 )
+add_custom_target(stemmer_modules DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/modules.h)
 
 # Generate libstemmer.c from template
 add_custom_command(
@@ -45,7 +46,7 @@ add_custom_command(
     ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/libstemmer_c.in
     ${CMAKE_CURRENT_BINARY_DIR}/libstemmer.c
     COMMAND sed -i 's/@MODULES_H@/modules.h/' ${CMAKE_CURRENT_BINARY_DIR}/libstemmer.c
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/libstemmer_c.in
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/libstemmer_c.in ${CMAKE_CURRENT_BINARY_DIR}/modules.h
 )
 
 # Runtime sources
@@ -54,28 +55,33 @@ set(RUNTIME_SOURCES
     runtime/utilities.c
 )
 
-# Create the libstemmer library
+# Algorithm sources (all generated C implementations)
+file(GLOB STEMMER_ALGO_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src_c/*.c
+)
+
+# Create the libstemmer library with runtime + algorithms + dispatcher
 add_library(stemmer STATIC 
     ${CMAKE_CURRENT_BINARY_DIR}/libstemmer.c
     ${RUNTIME_SOURCES}
+    ${STEMMER_ALGO_SOURCES}
 )
+add_dependencies(stemmer snowball_compiler stemmer_modules)
+
+# Ensure the library can be linked into shared libs
+set_target_properties(stemmer PROPERTIES POSITION_INDEPENDENT_CODE ON C_STANDARD 99 C_STANDARD_REQUIRED ON)
 
 # Set include directories
 target_include_directories(stemmer PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/runtime
     ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src_c
 )
 
 # Set compile definitions
 target_compile_definitions(stemmer PUBLIC 
     COMPILE_TIME_DETERMINISTIC=1
-)
-
-# Set C standard
-set_target_properties(stemmer PROPERTIES
-    C_STANDARD 99
-    C_STANDARD_REQUIRED ON
 )
 
 # Dependencies
