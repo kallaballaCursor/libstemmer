@@ -1,30 +1,8 @@
 # CMakeLists.txt for Snowball stemmer library
 cmake_minimum_required(VERSION 3.18)
 
-# First, we need to build the snowball compiler
-set(SNOWBALL_COMPILER_SOURCES
-    compiler/space.c
-    compiler/tokeniser.c
-    compiler/analyser.c
-    compiler/generator.c
-    compiler/generator_ada.c
-    compiler/generator_csharp.c
-    compiler/generator_go.c
-    compiler/generator_java.c
-    compiler/generator_js.c
-    compiler/generator_pascal.c
-    compiler/generator_php.c
-    compiler/generator_python.c
-    compiler/generator_rust.c
-    compiler/driver.c
-)
-
-# Build the snowball compiler
-add_executable(snowball_compiler ${SNOWBALL_COMPILER_SOURCES})
-target_include_directories(snowball_compiler PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/runtime
-)
+# Use the snowball compiler from the snowball submodule
+# The snowball_compiler target is defined in external/snowball/CMakeLists.txt
 
 # Generate all stemmer source files first
 set(ALGORITHMS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/algorithms)
@@ -41,24 +19,25 @@ set(GENERATED_SOURCES)
 foreach(ALGORITHM_FILE ${ALGORITHM_FILES})
     get_filename_component(ALGORITHM_NAME ${ALGORITHM_FILE} NAME_WE)
     
-    # Generate C file
+    # Generate C file using snowball compiler from snowball submodule
     add_custom_command(
-        OUTPUT ${OUTPUT_DIR}/${ALGORITHM_NAME}.c
-        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/snowball_compiler
-                ${ALGORITHM_FILE} -o ${OUTPUT_DIR}/${ALGORITHM_NAME} -u
+        OUTPUT ${OUTPUT_DIR}/stem_UTF_8_${ALGORITHM_NAME}.c
+        COMMAND $<TARGET_FILE:snowball_compiler>
+                ${ALGORITHM_FILE} -o ${OUTPUT_DIR}/stem_UTF_8_${ALGORITHM_NAME} -eprefix ${ALGORITHM_NAME}_UTF_8_ -r ${CMAKE_CURRENT_SOURCE_DIR}/runtime -u
         DEPENDS snowball_compiler ${ALGORITHM_FILE}
     )
-    list(APPEND GENERATED_SOURCES ${OUTPUT_DIR}/${ALGORITHM_NAME}.c)
+    list(APPEND GENERATED_SOURCES ${OUTPUT_DIR}/stem_UTF_8_${ALGORITHM_NAME}.c)
 endforeach()
 
 # Generate modules.h from modules.txt
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/modules.h
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
-            ${CMAKE_CURRENT_BINARY_DIR}/modules.h
-            ${OUTPUT_DIR}
+            modules.h
+            src_c
             ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
-            ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
+            mkinc.mak
+            utf8
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
             ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
