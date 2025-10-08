@@ -31,7 +31,7 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/modules.h
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/mkmodules.pl
             ${CMAKE_CURRENT_BINARY_DIR}/modules.h
-            ../../external/snowball/src_c
+            ${CMAKE_CURRENT_BINARY_DIR}/src_c
             ${CMAKE_CURRENT_SOURCE_DIR}/libstemmer/modules.txt
             ${CMAKE_CURRENT_BINARY_DIR}/mkinc.mak
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
