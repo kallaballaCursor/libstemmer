@@ -45,7 +45,7 @@ foreach(ALGORITHM_FILE ${ALGORITHM_FILES})
     add_custom_command(
         OUTPUT ${OUTPUT_DIR}/${ALGORITHM_NAME}.c
         COMMAND ${CMAKE_CURRENT_BINARY_DIR}/snowball_compiler
-                ${ALGORITHM_FILE} -o ${OUTPUT_DIR}/${ALGORITHM_NAME}
+                ${ALGORITHM_FILE} -o ${OUTPUT_DIR}/${ALGORITHM_NAME} -u
         DEPENDS snowball_compiler ${ALGORITHM_FILE}
     )
     list(APPEND GENERATED_SOURCES ${OUTPUT_DIR}/${ALGORITHM_NAME}.c)
